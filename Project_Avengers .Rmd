@@ -1,0 +1,292 @@
+---
+title: "Project"
+author: "AVENGERS: Vineetha Dulla AND Harshavardhan Chittaluru"
+date: "2023-11-13"
+output: pdf_document
+---
+
+Load Dataset
+```{r}
+library(haven); library(dplyr)
+# variables that may be needed
+gss_myvar<-c("YEAR","WRKSTAT","MARITAL","AGE","EDUC", "SEX","RACE","RINCOME","REGION","NATDRUG","HEALTH","HAPPY","SMOKE")
+# read the data:
+read_sav("/Users/vineethadulla/Downloads/GSS_spss/GSS7218_R3.sav") %>%   subset(select=gss_myvar) -> gss_data
+
+gss_data<-subset(gss_data,select=gss_myvar)
+dim(gss_data)
+names(gss_data)
+```
+```{r}
+head(gss_data)
+```
+
+```{r}
+sapply(gss_data, function(x) sum(is.na(x)))
+```
+
+```{r}
+years <- unique(gss_data$YEAR)
+years
+for (year in years) {
+  print(year)
+  print(nrow(gss_data[gss_data$YEAR == year,]))
+  na_count <-sapply(gss_data[gss_data$YEAR==year,], function(y) sum(is.na(y)))
+  print(na_count)
+}
+```
+
+```{r}
+nrow(gss_data)
+sapply(gss_data, function(y) sum(is.na(y)))
+sum(complete.cases(gss_data))
+```
+
+```{r}
+library(tidyr)
+
+gss_data %>% drop_na() -> gss_data_wo_na
+nrow(gss_data_wo_na)
+
+```
+
+
+
+```{r}
+
+gss_data_ul <- data.frame(sapply(gss_data, haven::zap_labels))
+head(gss_data_ul)
+
+gss_data_wo_na <- data.frame(sapply(gss_data_wo_na, haven::zap_labels))
+head(gss_data_wo_na)
+
+```
+
+```{r}
+library(mice)
+tempdata <- mice(gss_data_ul,m=5,maxit=5,meth="rf",seed=500)
+tempdata
+```
+
+```{r}
+gss_data_rf_1 <- complete(tempdata,1)
+gss_data_rf_2 <- complete(tempdata,2)
+gss_data_rf_3 <- complete(tempdata,3)
+gss_data_rf_4 <- complete(tempdata,4)
+gss_data_rf_5 <- complete(tempdata,5)
+```
+
+```{r}
+modelFit1 <- with(tempdata,lm(HAPPY~ YEAR + WRKSTAT))
+summary(pool(modelFit1))
+```
+
+```{r}
+sapply(gss_data_ul, function(y) sum(is.na(y)))
+gss_data_rvalues <- gss_data_ul
+```
+
+```{r}
+
+gss_data_rvalues$WRKSTAT <- ifelse(is.na(gss_data_rvalues$WRKSTAT) , sample(unique(gss_data_rvalues$WRKSTAT[!is.na(gss_data_rvalues$WRKSTAT)])) , gss_data_rvalues$WRKSTAT)
+
+gss_data_rvalues$MARITAL <- ifelse(is.na(gss_data_rvalues$MARITAL) , sample(unique(gss_data_rvalues$MARITAL[!is.na(gss_data_rvalues$MARITAL)])) , gss_data_rvalues$MARITAL)
+
+gss_data_rvalues$AGE <- ifelse(is.na(gss_data_rvalues$AGE) , sample(unique(gss_data_rvalues$AGE[!is.na(gss_data_rvalues$AGE)])) , gss_data_rvalues$AGE)
+
+gss_data_rvalues$EDUC <- ifelse(is.na(gss_data_rvalues$EDUC) , sample(unique(gss_data_rvalues$EDUC[!is.na(gss_data_rvalues$EDUC)])) , gss_data_rvalues$EDUC)
+
+gss_data_rvalues$RINCOME <- ifelse(is.na(gss_data_rvalues$RINCOME) , sample(unique(gss_data_rvalues$RINCOME[!is.na(gss_data_rvalues$RINCOME)])) , gss_data_rvalues$RINCOME)
+
+gss_data_rvalues$NATDRUG <- ifelse(is.na(gss_data_rvalues$NATDRUG) , sample(unique(gss_data_rvalues$NATDRUG[!is.na(gss_data_rvalues$NATDRUG)])) , gss_data_rvalues$NATDRUG)
+
+gss_data_rvalues$HEALTH <- ifelse(is.na(gss_data_rvalues$HEALTH) , sample(unique(gss_data_rvalues$HEALTH[!is.na(gss_data_rvalues$HEALTH)])) , gss_data_rvalues$HEALTH)
+
+gss_data_rvalues$HAPPY <- ifelse(is.na(gss_data_rvalues$HAPPY) , sample(unique(gss_data_rvalues$HAPPY[!is.na(gss_data_rvalues$HAPPY)])) , gss_data_rvalues$HAPPY)
+
+gss_data_rvalues$SMOKE <- ifelse(is.na(gss_data_rvalues$SMOKE) , sample(unique(gss_data_rvalues$SMOKE[!is.na(gss_data_rvalues$SMOKE)])) , gss_data_rvalues$SMOKE)
+
+```
+
+```{r}
+sapply(gss_data_rvalues, function(y) sum(is.na(y)))
+```
+
+```{r}
+library(tidyverse)
+gss_data_rvalues %>%
+    map( table )
+```
+Final Datasets to be used
+```{r}
+head(gss_data_wo_na)
+head(gss_data_rvalues)
+head(gss_data_rf_1)
+head(gss_data_rf_2)
+head(gss_data_rf_3)
+head(gss_data_rf_4)
+head(gss_data_rf_5)
+```
+```{r}
+install.packages("ggplot2")
+```
+
+```{r}
+boxplot(gss_data_wo_na$AGE ~ gss_data_wo_na$HEALTH,xlab="Health",ylab="Age")
+```
+```{r}
+table_WRKSTAT_HEALTH <- table(gss_data_wo_na$WRKSTAT, gss_data_wo_na$HEALTH)
+barplot(table_WRKSTAT_HEALTH, legend = rownames(table_WRKSTAT_HEALTH), 
+        beside = TRUE, col = (nrow(table_WRKSTAT_HEALTH)), 
+        main = "WRKSTAT vs. HEALTH")
+
+```
+```{r}
+library(ggplot2)
+
+q<-ggplot(gss_data_wo_na,aes(x=HEALTH))+geom_histogram(color="grey")+facet_grid(~NATDRUG)+theme_bw()
+q+ labs(title="HEALTH VS NATDRUG",y="health count")
+```
+```{r}
+library(ggplot2)
+
+r<-ggplot(gss_data_wo_na,aes(x=HEALTH))+geom_histogram(color="grey")+facet_grid(~SMOKE)+theme_bw()
+r+labs(title="HEALTH VS SMOKE",y="health count")
+```
+
+```{r}
+library(ggplot2)
+
+p <-ggplot(gss_data_wo_na,aes(x=HEALTH))+geom_histogram(color="grey")+facet_grid(~HAPPY)+theme_bw()
+p+labs(title="HAPPY vs HEALTH",y="health count")
+```
+```{r}
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+gss_data_wo_na$HEALTH <- as.factor(gss_data_wo_na$HEALTH)
+# Example: Trend analysis for HEALTH variable over years
+health_trend <- gss_data_wo_na %>%
+  group_by(YEAR, HEALTH) %>%
+  summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100) %>%
+  ggplot(aes(x = YEAR, y = percent, group = HEALTH, color = HEALTH)) +
+  geom_line() +
+  labs(title = "Trend Analysis of HEALTH over Years",
+       x = "Year",
+       y = "Health Percentage") +
+  theme_minimal()+
+  scale_color_manual(values = c("red", "blue", "green", "purple"))
+
+# Plotting the health trend over years
+print(health_trend)
+```
+
+
+
+```{r}
+library(randomForest)
+
+randomforest<-function(data) {
+  set.seed(18)
+  sample <- sample(c(TRUE, FALSE), nrow(data), replace=TRUE, prob=c(0.7,0.3))
+  train  <- data[sample, ]
+  test   <- data[!sample, ]
+  model = randomForest(as.factor(HEALTH)~.,data=train)
+  importance(model)
+  plot(train$AGE,jitter(train$HEALTH))
+  points(train$AGE,predict(model),col=4)
+  p1 <- predict(model, test)
+  conf_matrix <- table(act = test$HEALTH, obs = as.factor(p1))
+  print(conf_matrix)
+  accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+  cat("Accuracy:", accuracy, "\n")
+
+}
+print("1st Mice Model: ")
+randomforest(gss_data_rf_1)
+print("2nd Mice Model: ")
+randomforest(gss_data_rf_2)
+print("3rd Mice Model: ")
+randomforest(gss_data_rf_3)
+print("4th Mice Model: ")
+randomforest(gss_data_rf_4)
+print("5th Mice Model: ")
+randomforest(gss_data_rf_5)
+print("Model without NA values: ")
+randomforest(gss_data_wo_na)
+print("Model with Random values: ")
+randomforest(gss_data_rvalues)
+
+```
+```{r}
+library(randomForest)
+
+poissonmodel<-function(data) {
+  set.seed(18)
+  sample <- sample(c(TRUE, FALSE), nrow(data), replace=TRUE, prob=c(0.7,0.3))
+  train  <- data[sample, ]
+  test   <- data[!sample, ]
+  model<-glm(HEALTH ~ ., data = train, family = 'poisson')
+  plot(train$AGE, train$HEALTH)
+  points(train$AGE, predict(model, type='response'), col = 4)
+  return(summary(model))
+}
+print("1st Mice Model: ")
+s_rf1 <- poissonmodel(gss_data_rf_1)
+print("2nd Mice Model: ")
+s_rf2 <-poissonmodel(gss_data_rf_2)
+print("3rd Mice Model: ")
+s_rf3 <-poissonmodel(gss_data_rf_3)
+print("4th Mice Model: ")
+s_rf4 <-poissonmodel(gss_data_rf_4)
+print("5th Mice Model: ")
+s_rf5 <-poissonmodel(gss_data_rf_5)
+print("Model without NA values: ")
+s_na <-poissonmodel(gss_data_wo_na)
+print("Model with Random values: ")
+s_rval <-poissonmodel(gss_data_rvalues)
+```
+
+```{r}
+rf1_beta <- as.vector(s_rf1$coefficients[,1])
+rf2_beta <- as.vector(s_rf2$coefficients[,1])
+rf3_beta <- as.vector(s_rf3$coefficients[,1])
+rf4_beta <- as.vector(s_rf4$coefficients[,1])
+rf5_beta <- as.vector(s_rf5$coefficients[,1])
+rf1_se <- as.vector(s_rf1$coefficients[,2])
+rf2_se <- as.vector(s_rf2$coefficients[,2])
+rf3_se <- as.vector(s_rf3$coefficients[,2])
+rf4_se <- as.vector(s_rf4$coefficients[,2])
+rf5_se <- as.vector(s_rf5$coefficients[,2])
+avg_beta <- list()
+avg_var <- list()
+pooled_var <- list()
+extra_var <- list()
+m=5
+for(i in 1:length(rf1_beta)){
+  avg_beta[i] <- mean(c(rf1_beta[i], rf2_beta[i], rf3_beta[i], rf4_beta[i], rf5_beta[i]))
+  avg_var[i] <- mean(c(rf1_se[i]^2, rf2_se[i]^2, rf3_se[i]^2, rf4_se[i]^2, rf5_se[i]^2))
+  extra_var[i] <- (1/(m-1))*((as.numeric(rf1_beta[i])) - (as.numeric(avg_beta[i]))^2 + (as.numeric(rf2_beta[i])) - (as.numeric(avg_beta[i]))^2 + (as.numeric(rf3_beta[i])) - (as.numeric(avg_beta[i]))^2 + (as.numeric(rf4_beta[i])) - (as.numeric(avg_beta[i]))^2 + (as.numeric(rf5_beta[i])) - (as.numeric(avg_beta[i])))^2
+  pooled_var[i] <- as.numeric(avg_var[i]) + (1+1/5)*(as.numeric(extra_var[i]))
+}
+```
+
+```{r}
+df <- data.frame(cbind(Estimates = avg_beta, Se = sqrt(as.numeric(pooled_var)), pool = pooled_var))
+```
+
+```{r}
+summary_pooled <- data.frame(
+  Vars = c("(intercept)","YEAR","WRKSTAT","MARITAL","AGE","EDUC", "SEX","RACE","RINCOME","REGION","NATDRUG","HAPPY","SMOKE"),
+  Estimate = sprintf("%.6f", df$Estimates),
+  Std_err = sprintf("%.6f", df$Se),
+  Pooled_var = sprintf("%.6f", pooled_var),
+  z_value = sprintf("%.6f", as.numeric(df$Estimates)/as.numeric(df$Se))
+)
+summary_pooled
+
+sprintf("Null Deviance: %.2f on %d degrees of freedom",mean(c(s_rf1$null.deviance, s_rf2$null.deviance, s_rf3$null.deviance, s_rf4$null.deviance, s_rf5$null.deviance)), s_rf1$df.null)
+sprintf("Residual Deviance: %.2f on %d degrees of freedom",mean(c(s_rf1$deviance, s_rf2$deviance, s_rf3$deviance, s_rf4$deviance, s_rf5$deviance)), s_rf1$df.residual)
+```
+
